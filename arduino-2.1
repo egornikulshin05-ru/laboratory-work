@@ -33,8 +33,8 @@ bool nightToggleLocked = false;     // Защита от повторного п
 // === Для антидребезга кнопки аварийного режима ===
 int emergencyButtonState = HIGH;        // Текущее состояние аварийной кнопки
 int lastEmergencyButtonState = HIGH;    // Предыдущее состояние аварийной кнопки
-unsigned long emergencyDebounceTime = 0;
-const unsigned long emergencyDebounceDelay = 50;
+unsigned long emergencyDebounceTime = 0; // Время последнего изменения состояния аварийной кнопки
+const unsigned long emergencyDebounceDelay = 50; // Задержка для антидребезга кнопки аварийного режима (50 мс)
 
 // === Для мигания жёлтого светодиода ===
 unsigned long lastBlinkTime = 0;  // Последнее время мигания
@@ -62,7 +62,7 @@ void setOutputsForState(State s) {
 }
 
 // === Переход в новое состояние ===
-void goToState(State newState, unsigned long newDuration) {
+void goToState(State newState, unsigned long newDuration, const char* reason) {
   currentState = newState;       // Обновляем текущее состояние
   stateStart = millis();         // Запоминаем момент начала
   duration = newDuration;        // Устанавливаем длительность
@@ -71,8 +71,10 @@ void goToState(State newState, unsigned long newDuration) {
 
   setOutputsForState(newState);  // Включаем нужные светодиоды
 
-  // Выводим в Serial текущее состояние с длительностью
-  Serial.print("Состояние: ");
+  // Выводим в Serial текущее состояние с длительностью и причиной
+  Serial.print("Timestamp: ");
+  Serial.print(millis());
+  Serial.print(", Состояние: ");
   switch (newState) {
     case S_GREEN: Serial.print("ЗЕЛЁНЫЙ"); break;
     case S_YELLOW: Serial.print("ЖЁЛТЫЙ"); break;
@@ -82,7 +84,8 @@ void goToState(State newState, unsigned long newDuration) {
   }
   Serial.print(", длительность: ");
   Serial.print(duration);
-  Serial.println(" мс");
+  Serial.print(" мс, причина: ");
+  Serial.println(reason);
 }
 
 // === Обработка логики внутри каждого состояния ===
@@ -90,7 +93,7 @@ void handleEventsInState(State s) {
   switch (s) {
     case S_GREEN:
       if (millis() - stateStart >= duration) {
-        goToState(S_YELLOW, 3000); // По таймеру → жёлтый
+        goToState(S_YELLOW, 3000, "таймер зелёного истёк"); // По таймеру → жёлтый
       }
       break;
 
@@ -98,16 +101,16 @@ void handleEventsInState(State s) {
       if (millis() - stateStart >= duration) {
         if (pedRequest) {
           pedRequest = false;                // Сбрасываем запрос
-          goToState(S_RED, 15000);  // Удлинённый красный для пешехода
+          goToState(S_RED, 15000, "таймер жёлтого истёк (с пешеходом)");  // Удлинённый красный для пешехода
         } else {
-          goToState(S_RED, 10000);           
+          goToState(S_RED, 10000, "таймер жёлтого истёк");           
         }
       }
       break;
 
     case S_RED:
       if (millis() - stateStart >= duration) {
-        goToState(S_GREEN, 10000); // Красный закончился → зелёный
+        goToState(S_GREEN, 10000, "таймер красного истёк"); // Красный закончился → зелёный
       }
       break;
 
@@ -196,7 +199,7 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Запуск светофора (метод 1: switch-case)");
   
-  goToState(S_GREEN, 10000); // Начинаем с зелёного на 10 секунд
+  goToState(S_GREEN, 10000, "инициализация"); // Начинаем с зелёного на 10 секунд
 }
 
 // === Основной цикл ===
@@ -206,21 +209,21 @@ void loop() {
   // --- Аварийный режим ---
   if (emergency) {
     if (currentState != S_WARNING) {
-      goToState(S_WARNING, 500); // Включаем аварийный
+      goToState(S_WARNING, 500, "аварийный режим включён"); // Включаем аварийный
     }
   } else {
     if (currentState == S_WARNING) {
-      goToState(S_GREEN, 10000);   // Выходим из аварийного режима в зелёный
+      goToState(S_GREEN, 10000, "аварийный режим выключён");   // Выходим из аварийного режима в зелёный
     }
   }
 
   // --- Ночной режим ---
   if (night && !emergency) {
     if (currentState != S_NIGHT) {
-      goToState(S_NIGHT, 1000);
+      goToState(S_NIGHT, 1000, "ночной режим включён");
     }
   } else if (currentState == S_NIGHT && !night) {
-    goToState(S_GREEN, 10000);   // Выход из ночного режима
+    goToState(S_GREEN, 10000, "ночной режим выключён");   // Выход из ночного режима
   }
 
   // --- Обычные состояния ---
@@ -228,7 +231,7 @@ void loop() {
     handleEventsInState(currentState);
   }
 
-  // --- Мигание в специальных режимах ---
+  // --- Мигание в спец. режимах ---
   if (currentState == S_WARNING || currentState == S_NIGHT) {
     unsigned long now = millis();
     unsigned long interval = (currentState == S_WARNING) ? 500 : 1000;
