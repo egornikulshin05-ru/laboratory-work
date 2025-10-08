@@ -1,0 +1,247 @@
+// === Определение пинов светодиодов и кнопок ===
+const int red_pin = 13;       // Красный светодиод подключен к пину 13
+const int yellow_pin = 12;    // Жёлтый светодиод подключен к пину 12
+const int green_pin = 11;     // Зелёный светодиод подключен к пину 11
+const int button_pin = 2;     // Кнопка пешехода подключена к пину 2
+const int emergency_pin = 3;  // Кнопка аварийного режима подключена к пину 3
+
+// === Состояния светофора ===
+enum State { S_GREEN, S_YELLOW, S_RED, S_WARNING, S_NIGHT };
+State currentState = S_GREEN;  // Текущее состояние, по умолчанию зелёный
+
+// === Переменные для отслеживания времени ===
+unsigned long stateStart = 0;   // Время начала текущего состояния
+unsigned long duration = 0;     // Длительность состояния
+
+// === Флаги событий ===
+bool pedRequest = false;   // Запрос пешехода (true = нажата кнопка)
+bool emergency = false;    // Аварийный режим (true = включён)
+bool night = false;        // Ночной режим (true = включён)
+
+// === Для антидребезга кнопки пешехода ===
+int buttonState = HIGH;                 // Текущее состояние кнопки
+int lastButtonState = HIGH;             // Предыдущее состояние кнопки
+unsigned long lastDebounceTime = 0;     // Последнее время изменения
+const unsigned long debounceDelay = 50; // Задержка для фильтра дребезга (50 мс)
+
+// === Для ночного режима (удержание кнопки 3 секунды) ===
+unsigned long nightPressStart = 0;  // Время начала удержания кнопки
+bool nightButtonPrev = HIGH;        // Предыдущее состояние кнопки
+bool prevNight = false;             // Чтобы отследить включение/выключение
+bool nightToggleLocked = false;     // Защита от повторного переключения
+
+// === Для антидребезга кнопки аварийного режима ===
+int emergencyButtonState = HIGH;        // Текущее состояние аварийной кнопки
+int lastEmergencyButtonState = HIGH;    // Предыдущее состояние аварийной кнопки
+unsigned long emergencyDebounceTime = 0;
+const unsigned long emergencyDebounceDelay = 50;
+
+// === Для мигания жёлтого светодиода ===
+unsigned long lastBlinkTime = 0;  // Последнее время мигания
+bool yellowLedOn = false;         // Состояние жёлтого светодиода
+
+// === Установка выходов в зависимости от состояния ===
+void setOutputsForState(State s) {
+  PORTB &= ~0b00111000; // Сбрасываем (выключаем) пины 11,12,13
+
+  switch (s) {
+    case S_GREEN: 
+      PORTB |= (1 << 3); // Включить зелёный (пин 11 = бит 3)
+      break;   
+    case S_YELLOW: 
+      PORTB |= (1 << 4); // Включить жёлтый (пин 12 = бит 4)
+      break;  
+    case S_RED: 
+      PORTB |= (1 << 5); // Включить красный (пин 13 = бит 5)
+      break;     
+    case S_WARNING:
+    case S_NIGHT:
+      // Для этих режимов мигание обрабатывается в loop()
+      break;
+  }
+}
+
+// === Переход в новое состояние ===
+void goToState(State newState, unsigned long newDuration) {
+  currentState = newState;       // Обновляем текущее состояние
+  stateStart = millis();         // Запоминаем момент начала
+  duration = newDuration;        // Устанавливаем длительность
+  lastBlinkTime = millis();      // Сброс таймера мигания
+  yellowLedOn = false;           // Жёлтый выключен по умолчанию
+
+  setOutputsForState(newState);  // Включаем нужные светодиоды
+
+  // Выводим в Serial текущее состояние с длительностью
+  Serial.print("Состояние: ");
+  switch (newState) {
+    case S_GREEN: Serial.print("ЗЕЛЁНЫЙ"); break;
+    case S_YELLOW: Serial.print("ЖЁЛТЫЙ"); break;
+    case S_RED: Serial.print("КРАСНЫЙ"); break;
+    case S_WARNING: Serial.print("АВАРИЙНЫЙ"); break;
+    case S_NIGHT: Serial.print("НОЧНОЙ"); break;
+  }
+  Serial.print(", длительность: ");
+  Serial.print(duration);
+  Serial.println(" мс");
+}
+
+// === Обработка логики внутри каждого состояния ===
+void handleEventsInState(State s) {
+  switch (s) {
+    case S_GREEN:
+      if (millis() - stateStart >= duration) {
+        goToState(S_YELLOW, 3000); // По таймеру → жёлтый
+      }
+      break;
+
+    case S_YELLOW:
+      if (millis() - stateStart >= duration) {
+        if (pedRequest) {
+          pedRequest = false;                // Сбрасываем запрос
+          goToState(S_RED, 15000);  // Удлинённый красный для пешехода
+        } else {
+          goToState(S_RED, 10000);           
+        }
+      }
+      break;
+
+    case S_RED:
+      if (millis() - stateStart >= duration) {
+        goToState(S_GREEN, 10000); // Красный закончился → зелёный
+      }
+      break;
+
+    case S_WARNING:
+    case S_NIGHT:
+      // Здесь ничего не делаем, мигание в loop()
+      break;
+  }
+}
+
+// === Чтение кнопок и обработка событий ===
+void readInputs() {
+  // --- Кнопка пешехода (с антидребезгом) ---
+  int reading = digitalRead(button_pin);
+
+  if (reading != lastButtonState) {
+    lastDebounceTime = millis(); // Зафиксировали момент изменения
+  }
+
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (reading == LOW && buttonState == HIGH) {
+      pedRequest = true; // Запрос от пешехода
+      Serial.println("Кнопка пешехода нажата");
+    }
+    buttonState = reading;
+  }
+  lastButtonState = reading;
+
+  // --- Кнопка аварийного режима (с антидребезгом) ---
+  int emergencyReading = digitalRead(emergency_pin);
+  if (emergencyReading != lastEmergencyButtonState) {
+    emergencyDebounceTime = millis();
+  }
+
+  if ((millis() - emergencyDebounceTime) > emergencyDebounceDelay) {
+    if (emergencyReading != emergencyButtonState) {
+      emergencyButtonState = emergencyReading;
+
+      // Переключаем аварийный режим при переходе кнопки в LOW (нажатие)
+      if (emergencyButtonState == LOW) {
+        emergency = !emergency;
+        if (emergency) {
+          Serial.println("Аварийный режим ВКЛЮЧЁН");
+        } else {
+          Serial.println("Аварийный режим ВЫКЛЮЧЁН");
+        }
+      }
+    }
+  }
+  lastEmergencyButtonState = emergencyReading;
+
+  // --- Ночной режим (удержание кнопки 3 секунды) ---
+  if (reading == LOW && nightButtonPrev == HIGH) {
+    nightPressStart = millis();   // Начало удержания
+    nightToggleLocked = false;    // Снимаем блокировку
+  }
+  
+  if (reading == LOW && nightButtonPrev == LOW && !nightToggleLocked) {
+    if (millis() - nightPressStart > 3000) {
+      night = !night;             // Переключаем режим
+      nightToggleLocked = true;   // Чтобы не сработало ещё раз
+      
+      if (night && !prevNight) {
+        Serial.println("Ночной режим ВКЛЮЧЁН");
+      } else if (!night && prevNight) {
+        Serial.println("Ночной режим ВЫКЛЮЧЁН");
+      }
+      prevNight = night;
+    }
+  }
+  
+  if (reading == HIGH) {
+    nightToggleLocked = false; // Сбрасываем блокировку при отпускании
+  }
+  nightButtonPrev = reading;
+}
+
+// === Настройка Arduino ===
+void setup() {
+  pinMode(red_pin, OUTPUT);
+  pinMode(yellow_pin, OUTPUT);
+  pinMode(green_pin, OUTPUT);
+  pinMode(button_pin, INPUT_PULLUP);
+  pinMode(emergency_pin, INPUT_PULLUP);
+
+  Serial.begin(9600);
+  Serial.println("Запуск светофора (метод 1: switch-case)");
+  
+  goToState(S_GREEN, 10000); // Начинаем с зелёного на 10 секунд
+}
+
+// === Основной цикл ===
+void loop() {
+  readInputs(); // Читаем кнопки
+
+  // --- Аварийный режим ---
+  if (emergency) {
+    if (currentState != S_WARNING) {
+      goToState(S_WARNING, 500); // Включаем аварийный
+    }
+  } else {
+    if (currentState == S_WARNING) {
+      goToState(S_GREEN, 10000);   // Выходим из аварийного режима в зелёный
+    }
+  }
+
+  // --- Ночной режим ---
+  if (night && !emergency) {
+    if (currentState != S_NIGHT) {
+      goToState(S_NIGHT, 1000);
+    }
+  } else if (currentState == S_NIGHT && !night) {
+    goToState(S_GREEN, 10000);   // Выход из ночного режима
+  }
+
+  // --- Обычные состояния ---
+  if (!emergency && !night) {
+    handleEventsInState(currentState);
+  }
+
+  // --- Мигание в специальных режимах ---
+  if (currentState == S_WARNING || currentState == S_NIGHT) {
+    unsigned long now = millis();
+    unsigned long interval = (currentState == S_WARNING) ? 500 : 1000;
+
+    if (now - lastBlinkTime >= interval) {
+      lastBlinkTime = now;
+      yellowLedOn = !yellowLedOn;
+
+      if (yellowLedOn) {
+        PORTB |= (1 << 4);   // Включить жёлтый
+      } else {
+        PORTB &= ~(1 << 4);  // Выключить жёлтый
+      }
+    }
+  }
+}
