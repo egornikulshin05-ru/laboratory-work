@@ -231,7 +231,7 @@ void loop() {
     handleEventsInState(currentState);
   }
 
-  // --- Мигание в спец. режимах ---
+  // --- Мигание жёлтым светодиодом в специальных режимах ---
   if (currentState == S_WARNING || currentState == S_NIGHT) {
     unsigned long now = millis();
     unsigned long interval = (currentState == S_WARNING) ? 500 : 1000;
