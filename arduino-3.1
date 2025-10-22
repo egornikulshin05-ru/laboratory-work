@@ -1,1 +1,38 @@
+//Задание 1: Использование внешнего прерывания (Кнопка)
+const int buttonPin = 2; // Подключаем кнопку ко 2 пину      
+const int redPin = 13; // Подключаем красный светодиод светофора к 13 пину        
 
+volatile bool stateChanged = false;       
+volatile unsigned long flashing_frequency = 1000;  
+
+unsigned long prevMillis = 0;   
+bool ledState = LOW;            
+
+void handleButtonPress() {
+  stateChanged = true;  
+}
+
+void setup(){
+  pinMode(buttonPin, INPUT_PULLUP); // Кнопка (2 пин) как вход с подтягивающим резистором
+  pinMode(redPin, OUTPUT); // Красный светодиод (13 пин) как выход            
+  attachInterrupt(digitalPinToInterrupt(buttonPin), handleButtonPress, CHANGE);
+}
+
+void loop() {
+  unsigned long currentMillis = millis();  
+
+  if (stateChanged) {
+    if (flashing_frequency == 1000) {
+      flashing_frequency = 200;  
+    } else {
+      flashing_frequency = 1000; 
+    }
+    stateChanged = false;
+  }
+
+  if (currentMillis - prevMillis >= flashing_frequency) {
+    prevMillis = currentMillis;  
+    ledState = !ledState;        
+    digitalWrite(redPin, ledState); 
+  }
+}
