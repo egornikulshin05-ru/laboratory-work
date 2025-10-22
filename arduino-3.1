@@ -2,37 +2,38 @@
 const int buttonPin = 2; // Подключаем кнопку ко 2 пину      
 const int redPin = 13; // Подключаем красный светодиод светофора к 13 пину        
 
-volatile bool stateChanged = false;       
-volatile unsigned long flashing_frequency = 1000;  
+volatile bool stateChanged = false;   // Флаг прерывания, изначально false
+volatile unsigned long flashing_frequency = 1000;  // Начальная частота мигания = 1000 мс
 
-unsigned long prevMillis = 0;   
-bool ledState = LOW;            
+unsigned long prevMillis = 0;   // Предыдущее время = 0
+bool ledState = LOW; // Начальное состояние светодиода = LOW         
 
+// Обработчик прерывания по кнопке
 void handleButtonPress() {
-  stateChanged = true;  
+  stateChanged = true; Изменение флага прерывания на true
 }
 
 void setup(){
   pinMode(buttonPin, INPUT_PULLUP); // Кнопка (2 пин) как вход с подтягивающим резистором
   pinMode(redPin, OUTPUT); // Красный светодиод (13 пин) как выход            
-  attachInterrupt(digitalPinToInterrupt(buttonPin), handleButtonPress, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(buttonPin), handleButtonPress, CHANGE); // Внешнее прерывание: реагирует на любое изменение сигнала на кнопке
 }
 
 void loop() {
-  unsigned long currentMillis = millis();  
-
+  unsigned long currentMillis = millis();  // Получаем текущее время
+  // Если stateChanged = true (произошло прерывание), то частота мигания меняется
   if (stateChanged) {
     if (flashing_frequency == 1000) {
       flashing_frequency = 200;  
     } else {
       flashing_frequency = 1000; 
     }
-    stateChanged = false;
+    stateChanged = false; // Флаг прерывания снова false
   }
-
+  // Проверяем, прошло ли достаточно времени с последнего момента переключения светодиода
   if (currentMillis - prevMillis >= flashing_frequency) {
-    prevMillis = currentMillis;  
-    ledState = !ledState;        
-    digitalWrite(redPin, ledState); 
+    prevMillis = currentMillis; // Запоминаем время переключения
+    ledState = !ledState; // Меняем состояние на противоположное       
+    digitalWrite(redPin, ledState); // Включаем или выключаем светодиод
   }
 }
