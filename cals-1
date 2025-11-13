@@ -1,1 +1,220 @@
+<HTML>
 
+<HEAD>
+   <TITLE>Расписание занятий 2 курса</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#FFFFFF">
+
+   <TABLE WIDTH="100%">
+      <TR>
+         <TD><A HREF="#ПН">Понедельник</A></TD>
+         <TD><A HREF="#ВТ">Вторник</A></TD>
+         <TD><A HREF="#СР">Среда</A></TD>
+         <TD><A HREF="#ЧТ">Четверг</A></TD>
+         <TD><A HREF="#ПТ">Пятница</A></TD>
+         <TD><A HREF="#СБ">Суббота</A></TD>
+      </TR>
+   </TABLE>
+
+   <BR>
+
+   <FONT COLOR="BLUE" SIZE="4" FACE="COURIER">
+   <B><A NAME="ПН">Понедельник</A></B>
+   </FONT><BR>
+
+   <TABLE BORDER="1" WIDTH="100%" BGCOLOR="#99CCCC">
+      <TR BGCOLOR="#CCCCFF" ALIGN="CENTER">
+         <TD>Занятие</TD>
+         <TD>5гр-ИАИТ-2</TD>
+         <TD>4гр-ИАИТ-2</TD>
+         <TD>6гр-ИАИТ-2</TD>
+      </TR>
+      <TR>
+         <TD>1</TD>
+         <TD>Случайные процессы</TD>
+         <TD>ИПИ-технологии</TD>
+         <TD>Физика</TD>
+      </TR>
+      <TR>
+         <TD>2</TD>
+         <TD>ФОПИ</TD>
+         <TD>Информатика</TD>
+         <TD>Английский язык</TD>
+      </TR>
+      <TR>
+         <TD>3</TD>
+         <TD>Метрология</TD>
+         <TD>Математика</TD>
+         <TD>Электроника</TD>
+      </TR>
+   </TABLE>
+
+   <BR>
+
+   <FONT COLOR="BLUE" SIZE="4" FACE="COURIER">
+   <B><A NAME="ВТ">Вторник</A></B>
+   </FONT><BR>
+
+   <TABLE BORDER="1" WIDTH="100%" BGCOLOR="#99CCCC">
+      <TR BGCOLOR="#CCCCFF" ALIGN="CENTER">
+         <TD>Занятие</TD>
+         <TD>5гр-ИАИТ-2</TD>
+         <TD>4гр-ИАИТ-2</TD>
+         <TD>6гр-ИАИТ-2</TD>
+      </TR>
+      <TR>
+         <TD>1</TD>
+         <TD>Информатика</TD>
+         <TD>Английский язык</TD>
+         <TD>Метрология</TD>
+      </TR>
+      <TR>
+         <TD>2</TD>
+         <TD>Метрология</TD>
+         <TD>ФОПИ</TD>
+         <TD>ИПИ-технологии</TD>
+      </TR>
+      <TR>
+         <TD>3</TD>
+         <TD>Математика</TD>
+         <TD>Электроника</TD>
+         <TD>Случайные процессы</TD>
+      </TR>
+   </TABLE>
+
+   <BR>
+
+   <FONT COLOR="BLUE" SIZE="4" FACE="COURIER">
+   <B><A NAME="СР">Среда</A></B>
+   </FONT><BR>
+
+   <TABLE BORDER="1" WIDTH="100%" BGCOLOR="#99CCCC">
+      <TR BGCOLOR="#CCCCFF" ALIGN="CENTER">
+         <TD>Занятие</TD>
+         <TD>5гр-ИАИТ-2</TD>
+         <TD>4гр-ИАИТ-2</TD>
+         <TD>6гр-ИАИТ-2</TD>
+      </TR>
+      <TR>
+         <TD>1</TD>
+         <TD>Английский язык</TD>
+         <TD>Метрология</TD>
+         <TD>ФОПИ</TD>
+      </TR>
+      <TR>
+         <TD>2</TD>
+         <TD>Электроника</TD>
+         <TD>Физика</TD>
+         <TD>Математика</TD>
+      </TR>
+      <TR>
+         <TD>3</TD>
+         <TD>ИПИ-технологии</TD>
+         <TD>Случайные процессы</TD>
+         <TD>Информатика</TD>
+      </TR>
+   </TABLE>
+
+   <BR>
+
+   <FONT COLOR="BLUE" SIZE="4" FACE="COURIER">
+   <B><A NAME="ЧТ">Четверг</A></B>
+   </FONT><BR>
+
+   <TABLE BORDER="1" WIDTH="100%" BGCOLOR="#99CCCC">
+      <TR BGCOLOR="#CCCCFF" ALIGN="CENTER">
+         <TD>Занятие</TD>
+         <TD>5гр-ИАИТ-2</TD>
+         <TD>4гр-ИАИТ-2</TD>
+         <TD>6гр-ИАИТ-2</TD>
+      </TR>
+      <TR>
+         <TD>1</TD>
+         <TD>Математика</TD>
+         <TD>ФОПИ</TD>
+         <TD>Электроника</TD>
+      </TR>
+      <TR>
+         <TD>2</TD>
+         <TD>Физика</TD>
+         <TD>ИПИ-технологии</TD>
+         <TD>Метрология</TD>
+      </TR>
+      <TR>
+         <TD>3</TD>
+         <TD>Случайные процессы</TD>
+         <TD>Английский язык</TD>
+         <TD>Информатика</TD>
+      </TR>
+   </TABLE>
+
+   <BR>
+
+   <FONT COLOR="BLUE" SIZE="4" FACE="COURIER">
+   <B><A NAME="ПТ">Пятница</A></B>
+   </FONT><BR>
+
+   <TABLE BORDER="1" WIDTH="100%" BGCOLOR="#99CCCC">
+      <TR BGCOLOR="#CCCCFF" ALIGN="CENTER">
+         <TD>Занятие</TD>
+         <TD>5гр-ИАИТ-2</TD>
+         <TD>4гр-ИАИТ-2</TD>
+         <TD>6гр-ИАИТ-2</TD>
+      </TR>
+      <TR>
+         <TD>1</TD>
+         <TD>ФОПИ</TD>
+         <TD>Метрология</TD>
+         <TD>Случайные процессы</TD>
+      </TR>
+      <TR>
+         <TD>2</TD>
+         <TD>Информатика</TD>
+         <TD>Электроника</TD>
+         <TD>Математика</TD>
+      </TR>
+      <TR>
+         <TD>3</TD>
+         <TD>Английский язык</TD>
+         <TD>Математика</TD>
+         <TD>ИПИ-технологии</TD>
+      </TR>
+   </TABLE>
+
+   <BR>
+
+   <FONT COLOR="BLUE" SIZE="4" FACE="COURIER">
+   <B><A NAME="СБ">Суббота</A></B>
+   </FONT><BR>
+
+   <TABLE BORDER="1" WIDTH="100%" BGCOLOR="#99CCCC">
+      <TR BGCOLOR="#CCCCFF" ALIGN="CENTER">
+         <TD>Занятие</TD>
+         <TD>5гр-ИАИТ-2</TD>
+         <TD>4гр-ИАИТ-2</TD>
+         <TD>6гр-ИАИТ-2</TD>
+      </TR>
+      <TR>
+         <TD>1</TD>
+         <TD>Электроника</TD>
+         <TD>Математика</TD>
+         <TD>Английский язык</TD>
+      </TR>
+      <TR>
+         <TD>2</TD>
+         <TD>Случайные процессы</TD>
+         <TD>Физика</TD>
+         <TD>ФОПИ</TD>
+      </TR>
+      <TR>
+         <TD>3</TD>
+         <TD>Физика</TD>
+         <TD>Информатика</TD>
+         <TD>Метрология</TD>
+      </TR>
+   </TABLE>
+
+</BODY>
+
+</HTML>
