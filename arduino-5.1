@@ -1,0 +1,160 @@
+#include <Arduino_FreeRTOS.h>
+#include <LiquidCrystal_I2C.h>
+#include <queue.h>
+#include <ThreeWire.h>
+#include <RtcDS1302.h>
+
+
+// LCD
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+
+// RTC DS1302 (DAT, CLK, RST)
+ThreeWire myWire(7, 6, 8);
+RtcDS1302<ThreeWire> rtc(myWire);
+
+
+// --- Функция интерполяции с калибровочными данными (пункт 5) ---
+struct CalibrationPoint {
+  int adc;
+  float lux;
+};
+const CalibrationPoint CalibrationData[] = {
+  {200, 10.0},
+  {450, 150.0},
+  {700, 500.0},
+  {900, 1500.0},
+  {1023, 2500.0}
+};
+const int CalibrationSize = sizeof(CalibrationData) / sizeof(CalibrationPoint);
+
+
+float calculateLuxFromADC(int D, const CalibrationPoint* data) {
+  if (D <= data[0].adc) return data[0].lux;
+  if (D >= data[CalibrationSize - 1].adc) return data[CalibrationSize - 1].lux;
+  for (int i = 0; i < CalibrationSize - 1; ++i) {
+    if (D >= data[i].adc && D <= data[i+1].adc) {
+      float D1 = data[i].adc;
+      float E1 = data[i].lux;
+      float D2 = data[i+1].adc;
+      float E2 = data[i+1].lux;
+      float E = E1 + (E2 - E1) * ((float)(D - D1) / (D2 - D1));
+      return E;
+    }
+  }
+  return 0.0;
+}
+// --- конец пункта 5 ---
+
+
+
+
+// --- Пункт 1: Инициализация и создание задач ---
+struct LuxData {
+  int lux;
+  char timeStr[16];
+};
+QueueHandle_t luxQueue;
+
+
+void setup() {
+  lcd.init();
+  lcd.backlight();
+ 
+  rtc.Begin();
+  rtc.SetIsRunning(true);
+
+
+  Serial.begin(115200);
+  pinMode(A0, INPUT);
+
+
+  luxQueue = xQueueCreate(5, sizeof(LuxData)); // 5 элементов размером LuxData
+
+
+  xTaskCreate(vTaskMeasureLuminosity, "MeasureLum", 128, NULL, 3, NULL);
+  xTaskCreate(vTaskDisplay, "Display", 128, NULL, 2, NULL);
+  xTaskCreate(vTaskRTC, "RTC", 128, NULL, 1, NULL);
+
+
+  vTaskStartScheduler();
+}
+// --- конец пункта 1 ---
+
+
+// --- Пункт 2: Задача измерения (включая интерполяцию) ---
+void vTaskMeasureLuminosity(void *pvParameters) {
+  for (;;) {
+    LuxData data;
+    int adcVal = analogRead(A0);
+    data.lux = (int)calculateLuxFromADC(adcVal, CalibrationData); // выполняется интерполяция
+    strcpy(data.timeStr, "");
+
+
+    xQueueSend(luxQueue, &data, portMAX_DELAY);
+    vTaskDelay(pdMS_TO_TICKS(200));
+  }
+}
+// --- конец пункта 2 ---
+
+
+// --- Пункт 3: Задача дисплея (чтение из очереди) ---
+void vTaskDisplay(void *pvParameters) {
+  LuxData data;
+  int lastLux = 0;
+  char lastTime[16] = "00:00:00";
+
+
+  for (;;) {
+    if (xQueueReceive(luxQueue, &data, portMAX_DELAY) == pdTRUE) {
+      lcd.clear();
+
+
+      if (data.lux != -1) lastLux = data.lux;
+      if (strlen(data.timeStr) > 0) strcpy(lastTime, data.timeStr);
+
+
+      lcd.setCursor(0, 0);
+      lcd.print("Lux: ");
+      lcd.print(lastLux);
+
+
+      lcd.setCursor(0, 1);
+      lcd.print("Time: ");
+      lcd.print(lastTime);
+
+
+      vTaskDelay(pdMS_TO_TICKS(100));
+    }
+  }
+}
+// --- конец пункта 3 ---
+
+
+// --- Пункт 4: Задача RTC (чтение и вывод в Serial) ---
+void vTaskRTC(void *pvParameters) {
+  for (;;) {
+    RtcDateTime now = rtc.GetDateTime();
+    LuxData data;
+    data.lux = -1;
+    sprintf(data.timeStr, "%02d:%02d:%02d", now.Hour(), now.Minute(), now.Second());
+    xQueueSend(luxQueue, &data, portMAX_DELAY);
+
+
+    Serial.print("Time: ");
+    Serial.print(now.Hour());
+    Serial.print(":");
+    Serial.print(now.Minute());
+    Serial.print(":");
+    Serial.println(now.Second());
+
+
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
+// --- конец пункта 4 ---
+
+
+void loop() {
+  // Пустая, FreeRTOS управляет задачами
+}
