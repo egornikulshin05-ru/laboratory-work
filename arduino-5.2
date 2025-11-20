@@ -1,0 +1,103 @@
+#include <Arduino_FreeRTOS.h>
+#include <queue.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+QueueHandle_t xLuxQueue;
+LiquidCrystal_I2C lcd(0x27, 16, 2); // адрес 0x27, 16x2
+
+// --- Пункт 5: Экспоненциальная функция калибровки ---
+struct CalibrationPoint {
+  int adc;
+  float lux;
+};
+
+const CalibrationPoint CalibrationData[] = {
+  {123, 40},      
+  {229, 60},     
+  {320, 80},     
+  {437, 100},     
+  {519, 125},     
+  {645, 145},    
+  {735, 230},   
+  {815, 260},   
+  {910, 300},     
+  {1030, 350}    
+};
+
+const int CalibrationSize = sizeof(CalibrationData) / sizeof(CalibrationPoint);
+
+// Экспоненциальная функция: y = 34,299 * e^(0,0024*x)
+const float EXP_A = 34.299f;
+const float EXP_B = 0.0024f;
+
+float calculateLuxFromADC(int D) {
+  return EXP_A * expf(EXP_B * (float)D);
+}
+// --- конец пункта 5 ---
+
+// -----------------------
+// Прототипы задач
+// -----------------------
+void TaskDisplay(void *pvParameters);
+void TaskLDR(void *pvParameters);
+
+void setup() {
+  Serial.begin(115200);
+  lcd.init();
+  lcd.backlight();
+
+  xLuxQueue = xQueueCreate(5, sizeof(float));
+  if (xLuxQueue == NULL) {
+    Serial.println("Queue cannot be created!");
+  }
+
+  // Создание задач
+  xTaskCreate(TaskDisplay, "Display_task", 128, NULL, 1, NULL);
+  xTaskCreate(TaskLDR, "LDR_task", 128, NULL, 1, NULL);
+
+  // Запуск планировщика
+  vTaskStartScheduler();
+}
+
+void loop() {
+  // Не нужен, FreeRTOS управляет задачами
+}
+
+// -----------------------
+// Задача измерения
+// -----------------------
+void TaskLDR(void *pvParameters) {
+  float lux;
+  int adcValue;
+
+  for (;;) {
+    adcValue = analogRead(A0);
+    lux = calculateLuxFromADC(adcValue);
+
+    xQueueSend(xLuxQueue, &lux, portMAX_DELAY);
+    
+    Serial.print("ADC: ");
+    Serial.print(adcValue);
+    Serial.print(" -> Lux: ");
+    Serial.println(lux, 1);
+    
+    vTaskDelay(pdMS_TO_TICKS(500)); // обновление каждые 500 мс
+  }
+}
+
+// -----------------------
+// Задача дисплея
+// -----------------------
+void TaskDisplay(void *pvParameters) {
+  float receivedLux;
+
+  for (;;) {
+    if (xQueueReceive(xLuxQueue, &receivedLux, portMAX_DELAY) == pdPASS) {
+      lcd.setCursor(0, 0);
+      lcd.print("Lux: ");
+      lcd.print(receivedLux, 1);
+      lcd.print("     "); // очищаем хвост старого числа
+    }
+  }
+}
